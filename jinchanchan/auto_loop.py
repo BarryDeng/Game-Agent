@@ -338,10 +338,20 @@ async def main():
     parser.add_argument("--port", type=int, default=5555)
     parser.add_argument("--dry-run", action="store_true", help="只识别不操作")
     parser.add_argument("--max-rounds", type=int, default=99)
+    # 王者(wzry)形式: adb 二进制 + 设备 serial, 支持 USB 真机/模拟器
+    parser.add_argument("--adb-bin", action="store_true",
+                        help="用 adb 二进制+serial 连接(王者形式), 支持真机 USB")
+    parser.add_argument("--serial", default=None, help="设备序列号(adb devices 可见), 缺省自动选第一个")
+    parser.add_argument("--adb-path", default="adb", help="adb 可执行文件路径, 如 D:/leidian/LDPlayer9/adb.exe")
     args = parser.parse_args()
 
     sdk = Sdk()
-    print("[AUTO] 连接雷电模拟器 %s:%d (未启动时每10秒自动重试)..." % (args.host, args.port))
+    if args.adb_bin:
+        from agent.sdk.adb_bin import AdbBinaryTransport
+        sdk = Sdk(transport=AdbBinaryTransport(adb_path=args.adb_path, serial=args.serial))
+        print("[AUTO] 连接形式: adb 二进制 + serial(%s)" % (args.serial or "自动发现"))
+    else:
+        print("[AUTO] 连接形式: adb_shell TCP %s:%d" % (args.host, args.port))
     while True:
         try:
             await sdk.connect_only(port=args.port, host=args.host, scan_if_fail=True)
